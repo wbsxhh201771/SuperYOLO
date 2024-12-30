@@ -369,6 +369,7 @@ def img2label_paths(img_paths):
     # Define label paths as a function of image paths
     sa, sb = os.sep + 'images' + os.sep, os.sep + 'labels' + os.sep  # /images/, /labels/ substrings
     return [x.replace(sa, sb, 1).replace('_' + x.split('_')[-1], '.txt') for x in img_paths] #replace('.' + x.split('.')[-1], '.txt')
+    # return [x.replace(sa, sb, 1).replace( x.split('.')[-1], 'txt') for x in img_paths]1
 
 def img2ir_paths(img_paths): #zjq
     # Define ir image paths as a function of image paths
@@ -401,11 +402,15 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             #     if i+'\n' in self.img_files:
             #         self.img_files.remove(i+'\n')
             for j in range(len(self.img_files)):
-                self.img_files[j] = self.img_path + self.img_files[j].rstrip() + '_co.png' #self.img_files[j].rstrip() + '_co.png'  #self.img_path + self.img_files[j].rstrip() + '_co.png'
+                self.img_files[j] = self.img_path + self.img_files[j].rstrip() + '_co.jpg' #self.img_files[j].rstrip() + '_co.png'  #self.img_path + self.img_files[j].rstrip() + '_co.png'
+            # for j in range(len(self.img_files)):
+            #     self.img_files[j] = self.img_files[j].rstrip()
+            #     print(self.img_files[j])
 
         # Check cache
         self.label_files = img2label_paths(self.img_files)  # labels
         self.ir_files = img2ir_paths(self.img_files)
+        # self.ir_files = self.img_files
         cache_path = Path(self.label_files[0]).parent.with_suffix('.cache')  # cached labels
         if cache_path.is_file():
             cache = torch.load(cache_path)  # load
@@ -433,7 +438,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 x[:, 0] = 0
 
         n = len(shapes)  # number of images
-        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        bi = np.floor(np.arange(n) / batch_size).astype(np.int64)  # batch index
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
@@ -462,7 +467,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 elif mini > 1:
                     shapes[i] = [1, 1 / mini]
 
-            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int64) * stride
 
         # Cache images into memory for faster training (WARNING: large datasets may exceed system RAM)
         self.imgs = [None] * n
@@ -681,11 +686,14 @@ class LoadImagesAndLabels_sr(Dataset):  # for training/testing
             #     if i+'\n' in self.img_files:
             #         self.img_files.remove(i+'\n')
             for j in range(len(self.img_files)):
-                self.img_files[j] = self.img_files[j].rstrip() + '_co.png'  #self.img_path + self.img_files[j].rstrip() + '_co.png'
+                self.img_files[j] = self.img_files[j].rstrip() + '_co.jpg'  #self.img_path + self.img_files[j].rstrip() + '_co.png'
+            # for j in range(len(self.img_files)):
+            #     self.img_files[j] = self.img_files[j].rstrip()  
 
         # Check cache
         self.label_files = img2label_paths(self.img_files)  # labels
         self.ir_files = img2ir_paths(self.img_files)
+        # self.ir_files = self.img_files
         cache_path = Path(self.label_files[0]).parent.with_suffix('.cache')  # cached labels
         if cache_path.is_file():
             cache = torch.load(cache_path)  # load
@@ -713,7 +721,7 @@ class LoadImagesAndLabels_sr(Dataset):  # for training/testing
                 x[:, 0] = 0
 
         n = len(shapes)  # number of images
-        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        bi = np.floor(np.arange(n) / batch_size).astype(np.int64)  # batch index
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
@@ -742,7 +750,7 @@ class LoadImagesAndLabels_sr(Dataset):  # for training/testing
                 elif mini > 1:
                     shapes[i] = [1, 1 / mini]
 
-            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int64) * stride
 
         # Cache images into memory for faster training (WARNING: large datasets may exceed system RAM)
         self.imgs = [None] * n
@@ -1366,7 +1374,7 @@ def extract_boxes(path='../coco128/'):  # from utils.datasets import *; extract_
                     b = x[1:] * [w, h, w, h]  # box
                     # b[2:] = b[2:].max()  # rectangle to square
                     b[2:] = b[2:] * 1.2 + 3  # pad
-                    b = xywh2xyxy(b.reshape(-1, 4)).ravel().astype(np.int)
+                    b = xywh2xyxy(b.reshape(-1, 4)).ravel().astype(np.int64)
 
                     b[[0, 2]] = np.clip(b[[0, 2]], 0, w)  # clip boxes outside of image
                     b[[1, 3]] = np.clip(b[[1, 3]], 0, h)

@@ -4,6 +4,10 @@ import argparse
 import logging
 import math
 import os
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
 import random
 import time
 from copy import deepcopy
@@ -13,15 +17,15 @@ import numpy as np
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
+import torch.optim as optim 
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.data
 import yaml
-from torch.cuda import amp
+from torch import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '0,1'
 # import test_up  # import test.py to get mAP after each epoch
 import test
 from models.experimental import attempt_load
@@ -208,7 +212,8 @@ def train(hyp, opt, device, tb_writer=None):
     if opt.data.endswith('vedai.yaml') or opt.data.endswith('SRvedai.yaml'):
         from utils.datasets import create_dataloader_sr as create_dataloader
     else:
-        from utils.datasets_single import create_dataloader
+        # from utils.datasets_single import create_dataloader 原来的额外数据加载
+        from utils.datasets import create_dataloader_sr as create_dataloader
     dataloader, dataset = create_dataloader(train_path, imgsz, batch_size, gs, opt,
                                         hyp=hyp, augment=True, cache=opt.cache_images, rect=opt.rect, rank=rank,
                                         #world_size=opt.world_size,
@@ -380,7 +385,7 @@ def train(hyp, opt, device, tb_writer=None):
                     irs = F.interpolate(irs, size=ns, mode='bilinear', align_corners=False) #zjq
 
             # Forward
-            with amp.autocast(enabled=cuda):
+            with amp.autocast(device_type='cuda'):
                 # t0 = time.time()
                 if opt.super:# and not opt.attention and not opt.super_attention:
                     pred,output_sr,_ = model(imgs,irs,opt.input_mode)  # forward #zjq
@@ -577,15 +582,15 @@ def train(hyp, opt, device, tb_writer=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #############################
-    parser.add_argument('--weights', type=str, default='', help='initial weights path')
+    parser.add_argument('--weights', type=str, default='weights/RGB+IR+MF_super_1024.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str,default='models/SRyolo_MF.yaml', help='model.yaml path') #yolov5s
     parser.add_argument('--super', action='store_true', help='super resolution')
     parser.add_argument('--data', type=str,default='data/SRvedai.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.scratch.yaml', help='hyperparameters path')
-    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--ch_steam', type=int, default=3)
     parser.add_argument('--ch', type=int,default=64, help = '3 4 16 midfusion1:64 midfusion2,3:128 midfusion4:256') 
-    parser.add_argument('--input_mode', type=str,default='RGB+IR+MF',help ='RGB IR RGB+IR(pixel-level fusion) RGB+IR+fusion(feature-level fusion)')
+    parser.add_argument('--input_mode', type=str,default='RGB+IR+MF',help ='RGB IR RGB+IR(pixel-level fusion像素级融合) RGB+IR+fusion(feature-level fusion特征级融合)')
     parser.add_argument('--batch-size', type=int, default=2, help='total batch size for all GPUs')
     parser.add_argument('--train_img_size', type=int,default=1024, help='train image sizes,if use SR,please set 1024')
     parser.add_argument('--test_img_size', type=int, default=512, help='test image sizes')
@@ -605,7 +610,7 @@ if __name__ == '__main__':
     parser.add_argument('--adam', action='store_true', help='use torch.optim.Adam() optimizer')
     parser.add_argument('--sync-bn', action='store_true', help='use SyncBatchNorm, only available in DDP mode')
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
-    parser.add_argument('--workers', type=int, default=4, help='maximum number of dataloader workers')
+    parser.add_argument('--workers', type=int, default=8, help='maximum number of dataloader workers')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--entity', default=None, help='W&B entity')
     parser.add_argument('--name', default='exp', help='save to project/name')
@@ -626,7 +631,7 @@ if __name__ == '__main__':
     opt.global_rank = int(os.environ['RANK']) if 'RANK' in os.environ else -1
     set_logging(opt.global_rank)
     if opt.global_rank in [-1, 0]:
-        check_git_status()
+        # check_git_status()
         check_requirements()
     opt.img_size = [opt.train_img_size,opt.test_img_size]
     # Resume

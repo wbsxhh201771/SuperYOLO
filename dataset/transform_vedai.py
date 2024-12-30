@@ -4,7 +4,7 @@
 
 import os
 import pandas as pd
-PATH = '/home/data4/zjq/'#'/home/data/zhangjiaqing/dataset/' #chanhe the path firstly (PATH TO dataset)
+PATH = '/home/crh/Desktop/SuperYOLO/dataset/'#'/home/data/zhangjiaqing/dataset/' #chanhe the path firstly (PATH TO dataset)
 
 def update_annotations(filename,image_size,label_path,save_path):
     data = pd.read_csv(label_path + filename, sep=' ', index_col=None, header=None, names=['x_center', 'y_center', 'orientation', 'class', 'is_contained', 'is_occluded', 'corner1_x', 'corner2_x', 'corner3_x', 'corner4_x', 'corner1_y', 'corner2_y', 'corner3_y', 'corner4_y'])
@@ -61,7 +61,76 @@ def changepath():
             for j in range(len(img_files)):
                 file.write(img_files[j]+'\n')
         file.close()
+def modify_path(path):
+    # 获取文件名和扩展名
+    file_name, file_ext = os.path.splitext(path)
+    # 去掉 "_ir" 部分
+    if file_name.endswith("_ir") or file_name.endswith("_co"):
+        file_name = file_name[:-3]
+    return file_name
+def remove_duplicates_from_file(file_path):
+    """
+    从指定的 txt 文件中去除重复的行
+    :param file_path: 输入文件路径
+    """
+    # 读取文件内容
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    # 使用集合去重
+    unique_lines = set(lines)
+    unique_lines=sorted(unique_lines)
+
+    # 将去重后的内容写回文件
+    with open(file_path, 'w') as file:
+        file.writelines(unique_lines)
+
+    print("文件去重完成")
+
+
+def change_Fire_Car_test():
+    path = PATH + 'Fire_Car_test/train.txt'
+    write_path=(PATH + 'Fire_Car_test/train_write.txt')
+    with open(path, "r") as file:
+        img_files = file.readlines()
+        for j in range(len(img_files)):
+            img_files[j] =  modify_path(img_files[j].rstrip())
+    file.close()
+    with open(write_path, "w") as file:
+        for j in range(len(img_files)):
+            file.write(img_files[j]+'\n')
+    file.close()
+    remove_duplicates_from_file(write_path)
+
+    path = PATH + 'Fire_Car_test/test.txt'
+    write_path=(PATH + 'Fire_Car_test/test_write.txt')
+    with open(path, "r") as file:
+        img_files = file.readlines()
+        for j in range(len(img_files)):
+            img_files[j] =  modify_path(img_files[j].rstrip())
+    file.close()
+    with open(write_path, "w") as file:
+        for j in range(len(img_files)):
+            file.write(img_files[j]+'\n')
+    file.close()
+    remove_duplicates_from_file(write_path)
+
+    path = PATH + 'Fire_Car_test/val.txt'
+    write_path=(PATH + 'Fire_Car_test/val_write.txt')
+    with open(path, "r") as file:
+        img_files = file.readlines()
+        for j in range(len(img_files)):
+            img_files[j] =  modify_path(img_files[j].rstrip())
+    file.close()
+    with open(write_path, "w") as file:
+        for j in range(len(img_files)):
+            file.write(img_files[j]+'\n')
+    file.close()
+    remove_duplicates_from_file(write_path)
+
+
 
 if __name__ == '__main__':
-    changepath()
+    # changepath()
+    change_Fire_Car_test()
 
