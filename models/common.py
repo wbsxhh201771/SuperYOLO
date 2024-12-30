@@ -204,6 +204,39 @@ class MF(nn.Module):# stereo attention block
         x_mask_left = torch.mul(self.mask_map_r(x_left).repeat(1,3,1,1),x_left)
         x_mask_right = torch.mul(self.mask_map_i(x_right),x_right)
        
+        out_IR = self.bottleneck1(x_mask_right+x_right_ori)
+        out_RGB = self.bottleneck2(x_mask_left+x_left_ori) #RGB
+        out = self.se(torch.cat([out_RGB,out_IR],1))
+        # import scipy.io as sio
+        # sio.savemat('features/output.mat', mdict={'data':out.cpu().numpy()})
+
+        return out
+
+class RIMF(nn.Module):# stereo attention block
+    def __init__(self, channels):
+        super(RIMF, self).__init__()
+        self.mask_map_r = nn.Conv2d(channels, 1, 1, 1, 0, bias=True)
+        self.mask_map_i = nn.Conv2d(1, 1, 1, 1, 0, bias=True)
+        self.softmax = nn.Softmax(-1)
+        self.bottleneck1 = nn.Conv2d(1, 16, 3, 1, 1, bias=False)
+        self.bottleneck2 = nn.Conv2d(channels, 48, 3, 1, 1, bias=False)
+        self.se = SE_Block(64,16)
+        self.se_ir=SE_IR(1,1)
+        # self.se_r = SE_Block(3,3)
+        # self.se_i = SE_Block(1,1)
+
+
+    def forward(self, x):# B * C * H * W #x_left, x_right
+        x_left_ori, x_right_ori = x[0],x[1]
+        b, c, h, w = x_left_ori.shape
+        # x_left = self.se_r(x_left_ori)
+        x_right = self.se_ir(x_right_ori)
+        x_left = x_left_ori
+        # x_right = x_right*0.7
+
+        x_mask_left = torch.mul(self.mask_map_r(x_left).repeat(1,3,1,1),x_left)
+        x_mask_right = torch.mul(self.mask_map_i(x_right),x_right)
+       
 
         out_IR = self.bottleneck1(x_mask_right+x_right_ori)
         out_RGB = self.bottleneck2(x_mask_left+x_left_ori) #RGB
